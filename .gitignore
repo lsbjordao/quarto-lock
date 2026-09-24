@@ -1,6 +1,7 @@
 _site/
 .quarto/
 .DS_Store
+.env
 
 /.luarc.json
 
