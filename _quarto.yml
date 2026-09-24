@@ -3,6 +3,8 @@ project:
 
 website:
   title: "quarto-lock"
+  site-url: "https://lsbjordao.github.io/quarto-lock/"
+  google-analytics: "G-Z2B44PKNCV"
   navbar:
     left:
       - href: index.qmd
