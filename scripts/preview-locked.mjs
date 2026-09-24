@@ -16,10 +16,10 @@ if (!process.env.QUARTO_LOCK_PASSWORD) {
   console.log(`[quarto-lock] QUARTO_LOCK_PASSWORD not set; using public demo password: ${DEMO_PASSWORD}`);
 }
 
-console.log("[quarto-lock] rendering locked site...");
+console.log("[quarto-lock] rendering documentation site...");
 const render = spawnSync("quarto", ["render"], {
   stdio: "inherit",
-  env: { ...process.env, QUARTO_LOCK_PASSWORD: password },
+  env: { ...process.env, QUARTO_LOCK_DISABLED: "1" },
 });
 
 if (render.error) {
@@ -27,6 +27,23 @@ if (render.error) {
   process.exit(1);
 }
 if (render.status !== 0) process.exit(render.status ?? 1);
+
+console.log("[quarto-lock] applying lock to rendered output...");
+const lock = spawnSync(process.execPath, ["_extensions/quarto-lock/run.mjs"], {
+  stdio: "inherit",
+  env: {
+    ...process.env,
+    QUARTO_LOCK_PASSWORD: password,
+    QUARTO_LOCK_FORCE: "1",
+    QUARTO_PROJECT_OUTPUT_DIR: root,
+  },
+});
+
+if (lock.error) {
+  console.error(`[quarto-lock] unable to run locker: ${lock.error.message}`);
+  process.exit(1);
+}
+if (lock.status !== 0) process.exit(lock.status ?? 1);
 
 const mime = {
   ".html": "text/html; charset=utf-8",
