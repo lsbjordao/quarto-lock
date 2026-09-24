@@ -1,4 +1,4 @@
-name: Quarto Lock → GitHub Pages
+name: Publish quarto-lock demo
 
 on:
   push:
@@ -6,21 +6,27 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     env:
       # Public on purpose: this repository is the quarto-lock demonstration.
-      # Real projects should use: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+      # Real projects should use a GitHub Actions secret instead.
       QUARTO_LOCK_PASSWORD: "quarto-lock-demo"
       QUARTO_LOCK_TITLE: "quarto-lock demo"
       QUARTO_LOCK_MESSAGE: "Demo password: quarto-lock-demo"
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -30,12 +36,25 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Render and publish encrypted demo
-        uses: quarto-dev/quarto-actions/publish@v2
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Render and lock site
+        run: quarto render
+
+      - name: Upload encrypted site artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          target: gh-pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          QUARTO_LOCK_PASSWORD: "quarto-lock-demo"
-          QUARTO_LOCK_TITLE: "quarto-lock demo"
-          QUARTO_LOCK_MESSAGE: "Demo password: quarto-lock-demo"
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
