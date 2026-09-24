@@ -1,0 +1,74 @@
+name: Bootstrap v0.1.0 release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-v0.1.0.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create v0.1.0 tag
+        env:
+          TARGET_SHA: 83b7adf9c969a33730a8c592d69852283c28dad9
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse -q --verify "refs/tags/v0.1.0" >/dev/null; then
+            echo "v0.1.0 already exists."
+          else
+            git tag -a v0.1.0 "$TARGET_SHA" -m "quarto-lock v0.1.0"
+            git push origin v0.1.0
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view v0.1.0 >/dev/null 2>&1; then
+            echo "Release v0.1.0 already exists."
+            exit 0
+          fi
+
+          cat > /tmp/release-notes.md <<'EOF'
+          First public release of **quarto-lock**, a Quarto extension for password-protecting rendered static websites and books without requiring a server-side authentication layer.
+
+          ### Highlights
+          - Encrypts rendered Quarto output at build time with AES-256-GCM.
+          - Derives keys with PBKDF2-HMAC-SHA-256 (600,000 iterations by default).
+          - Unlocks content in the browser and keeps the derived key only for the browser session.
+          - Decrypts same-origin static assets in memory through a service worker.
+          - Supports customizable and localizable lock-screen text.
+          - Includes deployment guidance for GitHub Pages, including the private-source → public encrypted-output pattern.
+          - Includes a live protected demo.
+
+          ### Install
+          ```bash
+          quarto add lsbjordao/quarto-lock
+          ```
+
+          Then enable the extension in `_quarto.yml` and provide `QUARTO_LOCK_PASSWORD` at render time.
+
+          ### Important security note
+          `quarto-lock` is a static-content lock, not an authentication or authorization system. Because encrypted files are publicly downloadable, strong passwords are essential against offline guessing attacks.
+
+          Documentation: https://lsbjordao.github.io/quarto-lock/
+
+          Live demo: https://lsbjordao.github.io/quarto-lock-demo/
+          EOF
+
+          gh release create v0.1.0 \
+            --title "quarto-lock v0.1.0" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
