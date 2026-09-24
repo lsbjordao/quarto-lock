@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, cp, readFile, access, readdir } from "node:fs/promises";
+import { mkdtemp, cp, readFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +9,7 @@ import { pbkdf2Sync, createDecipheriv } from "node:crypto";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..");
-const locker = path.join(repo, "_extensions", "quarto-lock", "lock.mjs");
+const runner = path.join(repo, "_extensions", "quarto-lock", "run.mjs");
 const fixture = path.join(here, "fixtures", "site");
 
 function fromBase64Url(s) { return Buffer.from(s, "base64url"); }
@@ -24,12 +24,12 @@ function decrypt(payload, key) {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
-async function build() {
+async function build(extraEnv = {}) {
   const work = await mkdtemp(path.join(tmpdir(), "quarto-lock-test-"));
   const site = path.join(work, "_site");
   await cp(fixture, site, { recursive: true });
   const password = "correct horse battery staple";
-  const run = spawnSync(process.execPath, [locker], {
+  const run = spawnSync(process.execPath, [runner], {
     cwd: work,
     encoding: "utf8",
     env: {
@@ -38,6 +38,7 @@ async function build() {
       QUARTO_PROJECT_RENDER_ALL: "1",
       QUARTO_LOCK_PASSWORD: password,
       QUARTO_LOCK_ITERATIONS: "100000",
+      ...extraEnv,
     },
   });
   assert.equal(run.status, 0, run.stderr || run.stdout);
@@ -47,7 +48,9 @@ async function build() {
 test("locks HTML and local assets without publishing plaintext", async () => {
   const { site } = await build();
   const wrapper = await readFile(path.join(site, "index.html"), "utf8");
-  assert.match(wrapper, /Reserved area/);
+  assert.match(wrapper, /Protected content/);
+  assert.match(wrapper, />Password</);
+  assert.match(wrapper, />Unlock</);
   assert.doesNotMatch(wrapper, /TOP SECRET QUARTO TEXT/);
   assert.doesNotMatch(wrapper, /Very Secret Title/);
   await assert.rejects(access(path.join(site, "assets", "site.css")));
@@ -58,6 +61,25 @@ test("locks HTML and local assets without publishing plaintext", async () => {
   await access(path.join(site, "assets", "pixel.png.qlock"));
   await access(path.join(site, "quarto-lock-sw.js"));
   await access(path.join(site, "quarto-lock-bridge.js"));
+});
+
+test("lock screen text can be localized with environment variables", async () => {
+  const { site } = await build({
+    QUARTO_LOCK_LANG: "es",
+    QUARTO_LOCK_TITLE: "Contenido protegido",
+    QUARTO_LOCK_MESSAGE: "Introduce la contraseña.",
+    QUARTO_LOCK_PASSWORD_LABEL: "Contraseña",
+    QUARTO_LOCK_BUTTON_LABEL: "Abrir",
+    QUARTO_LOCK_FOOTER: "Protegido por Quarto Lock",
+    QUARTO_LOCK_ERROR_INCORRECT: "Contraseña incorrecta.",
+  });
+  const wrapper = await readFile(path.join(site, "index.html"), "utf8");
+  assert.match(wrapper, /<html lang="es">/);
+  assert.match(wrapper, /Contenido protegido/);
+  assert.match(wrapper, /Introduce la contraseña\./);
+  assert.match(wrapper, />Contraseña</);
+  assert.match(wrapper, />Abrir</);
+  assert.match(wrapper, /Contraseña incorrecta\./);
 });
 
 test("published payload decrypts back to the rendered HTML with the correct password", async () => {
