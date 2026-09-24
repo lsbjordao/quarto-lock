@@ -1,0 +1,81 @@
+---
+title: "Customize the lock screen"
+---
+
+`quarto-lock` is localizable. The default interface is English, but every user-facing string on the lock screen can be changed without editing the extension source.
+
+## Use a local `.env`
+
+The repository includes `.env.example`. Copy it to `.env` in the root of your Quarto project:
+
+```bash
+cp .env.example .env
+```
+
+`quarto-lock` automatically reads `.env` when it runs. Regular environment variables and GitHub Actions secrets take precedence over values from `.env`.
+
+The recommended `.env` is for **local UI configuration only**. The real shared password should still be supplied through your shell or a GitHub Actions secret rather than committed to a file.
+
+```dotenv
+QUARTO_LOCK_LANG=en
+QUARTO_LOCK_TITLE="Protected content"
+QUARTO_LOCK_MESSAGE="Enter the password to unlock this content."
+QUARTO_LOCK_PASSWORD_LABEL="Password"
+QUARTO_LOCK_BUTTON_LABEL="Unlock"
+QUARTO_LOCK_FOOTER="Protected by Quarto Lock"
+QUARTO_LOCK_ERROR_INCORRECT="Incorrect password."
+QUARTO_LOCK_ERROR_SECURE_CONTEXT="This site must be opened over HTTPS (or localhost)."
+```
+
+Then render normally:
+
+```bash
+export QUARTO_LOCK_PASSWORD='your-long-private-passphrase'
+quarto render
+```
+
+or test the locked build locally:
+
+```bash
+npm run preview:locked
+```
+
+## Example: Portuguese
+
+```dotenv
+QUARTO_LOCK_LANG=pt-BR
+QUARTO_LOCK_TITLE="Área reservada"
+QUARTO_LOCK_MESSAGE="Digite a senha para abrir este conteúdo."
+QUARTO_LOCK_PASSWORD_LABEL="Senha"
+QUARTO_LOCK_BUTTON_LABEL="Entrar"
+QUARTO_LOCK_FOOTER="Protegido por Quarto Lock"
+QUARTO_LOCK_ERROR_INCORRECT="Senha incorreta."
+QUARTO_LOCK_ERROR_SECURE_CONTEXT="Este site precisa ser aberto por HTTPS (ou localhost)."
+```
+
+## Example: Spanish
+
+```dotenv
+QUARTO_LOCK_LANG=es
+QUARTO_LOCK_TITLE="Contenido protegido"
+QUARTO_LOCK_MESSAGE="Introduce la contraseña para abrir este contenido."
+QUARTO_LOCK_PASSWORD_LABEL="Contraseña"
+QUARTO_LOCK_BUTTON_LABEL="Abrir"
+QUARTO_LOCK_FOOTER="Protegido por Quarto Lock"
+QUARTO_LOCK_ERROR_INCORRECT="Contraseña incorrecta."
+QUARTO_LOCK_ERROR_SECURE_CONTEXT="Este sitio debe abrirse mediante HTTPS (o localhost)."
+```
+
+## Configuration precedence
+
+When the same variable is defined in more than one place, `quarto-lock` uses this order:
+
+1. an existing environment variable, including GitHub Actions `env` values and Secrets;
+2. the local `.env` file;
+3. the built-in English default.
+
+This means a project can keep translated UI text in `.env` while the password remains a GitHub Actions Secret in production.
+
+::: {.callout-warning title="Do not commit real passwords"}
+`.env` is ignored by this repository on purpose. Commit `.env.example` to document the available settings, but keep `QUARTO_LOCK_PASSWORD` out of version control. For GitHub Actions, use **Settings → Secrets and variables → Actions**.
+:::
