@@ -1,0 +1,226 @@
+[
+  {
+    "objectID": "index.html#how-it-works",
+    "href": "index.html#how-it-works",
+    "title": "quarto-lock",
+    "section": "How it works",
+    "text": "How it works\nQuarto source\n*.qmd / data / notebooks / assets\n        |\n        | quarto render\n        v\nrendered _site\n        |\n        | quarto-lock post-render\n        | PBKDF2-HMAC-SHA-256\n        | AES-256-GCM\n        v\nencrypted static output\nlock shell + *.qlock ciphertext\n        |\n        | static hosting\n        v\nvisitor enters shared password\n        |\n        v\nbrowser-side decryption\nThe core deployment principle is:\n\nSecrets enter the build; only ciphertext leaves the build."
+  },
+  {
+    "objectID": "index.html#quick-start",
+    "href": "index.html#quick-start",
+    "title": "quarto-lock",
+    "section": "Quick start",
+    "text": "Quick start\nInstall the extension in the Quarto project you want to protect:\nquarto add lsbjordao/quarto-lock\nEnable it in _quarto.yml:\nfilters:\n  - quarto-lock\nRender with a strong shared password:\nexport QUARTO_LOCK_PASSWORD='use-a-long-strong-passphrase'\nquarto render\nThe password is used to derive the encryption key during the locking step. It is not written into the generated HTML, JavaScript, or encrypted payloads.\nTo inspect the locked build locally, serve the already-rendered directory directly:\npython3 -m http.server 3073 -d _site\nThen open http://127.0.0.1:3073/.\n\n\n\n\n\n\nWarningDo not use quarto preview after locking\n\n\n\nquarto preview can trigger another render and recreate clear output in _site. To inspect an encrypted build, run a full quarto render and then serve _site directly."
+  },
+  {
+    "objectID": "index.html#what-gets-protected",
+    "href": "index.html#what-gets-protected",
+    "title": "quarto-lock",
+    "section": "What gets protected?",
+    "text": "What gets protected?\nquarto-lock protects local rendered resources, including:\n\nHTML pages;\nCSS and JavaScript;\nimages and fonts;\nQuarto search indexes and JSON files;\nPDFs, ZIP files and other local downloads.\n\nThe public protected host receives the minimal lock shell, the browser runtime and encrypted *.qlock payloads.\nExternal resources such as CDNs, remote images and remote APIs remain external and are not encrypted by quarto-lock."
+  },
+  {
+    "objectID": "index.html#cryptography",
+    "href": "index.html#cryptography",
+    "title": "quarto-lock",
+    "section": "Cryptography",
+    "text": "Cryptography\nVersion 0.1.0 uses:\n\nPBKDF2-HMAC-SHA-256 for password-based key derivation;\n600,000 iterations by default;\nAES-256-GCM for authenticated encryption;\na random 128-bit salt per build;\na unique random 96-bit IV per protected file;\nthe browser Web Crypto API for client-side cryptography.\n\nAfter a successful unlock, the derived AES key — not the password — is kept in sessionStorage, so navigation in the same browser tab remains unlocked. A new build receives a new salt/build id, so an old session key cannot unlock newly deployed content."
+  },
+  {
+    "objectID": "index.html#static-lock-not-user-authentication",
+    "href": "index.html#static-lock-not-user-authentication",
+    "title": "quarto-lock",
+    "section": "Static lock, not user authentication",
+    "text": "Static lock, not user authentication\nquarto-lock is intentionally a lock, not an identity system.\nIt does not provide individual accounts, roles, MFA, audit logs, revocation lists, password recovery or server-side authorization. Anyone who can download the site can also download the ciphertext and attempt offline password guessing, so password strength matters.\nOnce content has been successfully decrypted in a visitor’s browser, that visitor can copy or save it.\nFor highly sensitive or regulated material that requires identity, roles or revocation, use server-side authentication instead."
+  },
+  {
+    "objectID": "index.html#publish-on-github-pages",
+    "href": "index.html#publish-on-github-pages",
+    "title": "quarto-lock",
+    "section": "Publish on GitHub Pages",
+    "text": "Publish on GitHub Pages\nTwo deployment patterns are supported:\n\n\n\n\n\n\n\nSituation\nRecommended pattern\n\n\n\n\nQuarto source may be public\nSame repository → render → encrypted Pages artifact\n\n\nPrivate repo with Pages support\nSame private repository → GitHub Pages\n\n\nPrivate source + public static hosting\nPrivate source repo → Actions → separate public encrypted-output repo\n\n\n\nThe live demo uses the third pattern:\nquarto-lock-demo-source       PRIVATE\nQuarto source / data / scripts\n            |\n            | GitHub Actions\n            | quarto render\n            | quarto-lock\n            v\nquarto-lock-demo              PUBLIC\nencrypted build output only\n            |\n            | GitHub Pages\n            v\nhttps://lsbjordao.github.io/quarto-lock-demo/\nThe public output repository does not receive .qmd files, private datasets, notebooks, build scripts or passwords.\nThe complete walkthrough — including the fine-grained PAT, PAGES_DEPLOY_TOKEN, GitHub Actions workflow, anti-leak checks and billing notes — is in Publishing."
+  },
+  {
+    "objectID": "index.html#customize-or-translate-the-lock-screen",
+    "href": "index.html#customize-or-translate-the-lock-screen",
+    "title": "quarto-lock",
+    "section": "Customize or translate the lock screen",
+    "text": "Customize or translate the lock screen\nEvery user-facing string can be changed without editing the extension source. Configuration can come from environment variables or a local .env file.\nExample:\nQUARTO_LOCK_LANG=pt-BR\nQUARTO_LOCK_TITLE=\"Área reservada\"\nQUARTO_LOCK_MESSAGE=\"Digite a senha para abrir este conteúdo.\"\nQUARTO_LOCK_PASSWORD_LABEL=\"Senha\"\nQUARTO_LOCK_BUTTON_LABEL=\"Entrar\"\nQUARTO_LOCK_FOOTER=\"Protegido por Quarto Lock\"\nQUARTO_LOCK_ERROR_INCORRECT=\"Senha incorreta.\"\nEnvironment variables and GitHub Actions values take precedence over .env, and .env takes precedence over the built-in defaults.\nSee Customize UI for the complete configuration reference."
+  },
+  {
+    "objectID": "index.html#project-links",
+    "href": "index.html#project-links",
+    "title": "quarto-lock",
+    "section": "Project links",
+    "text": "Project links\n\nDocumentation: https://lsbjordao.github.io/quarto-lock/\nPublishing guide: https://lsbjordao.github.io/quarto-lock/publishing.html\nLive protected demo: https://lsbjordao.github.io/quarto-lock-demo/\nGitHub repository: https://github.com/lsbjordao/quarto-lock\nLatest release: https://github.com/lsbjordao/quarto-lock/releases/latest"
+  },
+  {
+    "objectID": "index.html#license",
+    "href": "index.html#license",
+    "title": "quarto-lock",
+    "section": "License",
+    "text": "License\nMIT"
+  },
+  {
+    "objectID": "customize.html",
+    "href": "customize.html",
+    "title": "Customize the lock screen",
+    "section": "",
+    "text": "quarto-lock is localizable. The default interface is English, but every user-facing string on the lock screen can be changed without editing the extension source."
+  },
+  {
+    "objectID": "customize.html#use-a-local-.env",
+    "href": "customize.html#use-a-local-.env",
+    "title": "Customize the lock screen",
+    "section": "Use a local .env",
+    "text": "Use a local .env\nThe repository includes .env.example. Copy it to .env in the root of your Quarto project:\ncp .env.example .env\nquarto-lock automatically reads .env when it runs. Regular environment variables and GitHub Actions variables/Secrets take precedence over values from .env.\nThe recommended .env is for local UI configuration only. The real shared password should still be supplied through your shell or a GitHub Actions Secret rather than committed to a file.\nQUARTO_LOCK_LANG=en\nQUARTO_LOCK_TITLE=\"Protected content\"\nQUARTO_LOCK_MESSAGE=\"Enter the password to unlock this content.\"\nQUARTO_LOCK_PASSWORD_LABEL=\"Password\"\nQUARTO_LOCK_BUTTON_LABEL=\"Unlock\"\nQUARTO_LOCK_FOOTER=\"Protected by Quarto Lock\"\nQUARTO_LOCK_ERROR_INCORRECT=\"Incorrect password.\"\nQUARTO_LOCK_ERROR_SECURE_CONTEXT=\"This site must be opened over HTTPS (or localhost).\"\nThen render your project normally:\nexport QUARTO_LOCK_PASSWORD='your-long-private-passphrase'\nquarto render\nTo inspect the locked output locally, serve the rendered _site directly:\npython3 -m http.server 3073 -d _site\nDo not run quarto preview after the locked render, because an incremental preview render can recreate clear HTML in _site."
+  },
+  {
+    "objectID": "customize.html#example-portuguese",
+    "href": "customize.html#example-portuguese",
+    "title": "Customize the lock screen",
+    "section": "Example: Portuguese",
+    "text": "Example: Portuguese\nQUARTO_LOCK_LANG=pt-BR\nQUARTO_LOCK_TITLE=\"Área reservada\"\nQUARTO_LOCK_MESSAGE=\"Digite a senha para abrir este conteúdo.\"\nQUARTO_LOCK_PASSWORD_LABEL=\"Senha\"\nQUARTO_LOCK_BUTTON_LABEL=\"Entrar\"\nQUARTO_LOCK_FOOTER=\"Protegido por Quarto Lock\"\nQUARTO_LOCK_ERROR_INCORRECT=\"Senha incorreta.\"\nQUARTO_LOCK_ERROR_SECURE_CONTEXT=\"Este site precisa ser aberto por HTTPS (ou localhost).\""
+  },
+  {
+    "objectID": "customize.html#example-spanish",
+    "href": "customize.html#example-spanish",
+    "title": "Customize the lock screen",
+    "section": "Example: Spanish",
+    "text": "Example: Spanish\nQUARTO_LOCK_LANG=es\nQUARTO_LOCK_TITLE=\"Contenido protegido\"\nQUARTO_LOCK_MESSAGE=\"Introduce la contraseña para abrir este contenido.\"\nQUARTO_LOCK_PASSWORD_LABEL=\"Contraseña\"\nQUARTO_LOCK_BUTTON_LABEL=\"Abrir\"\nQUARTO_LOCK_FOOTER=\"Protegido por Quarto Lock\"\nQUARTO_LOCK_ERROR_INCORRECT=\"Contraseña incorrecta.\"\nQUARTO_LOCK_ERROR_SECURE_CONTEXT=\"Este sitio debe abrirse mediante HTTPS (o localhost).\""
+  },
+  {
+    "objectID": "customize.html#use-translated-text-in-github-actions",
+    "href": "customize.html#use-translated-text-in-github-actions",
+    "title": "Customize the lock screen",
+    "section": "Use translated text in GitHub Actions",
+    "text": "Use translated text in GitHub Actions\nBecause .env is intentionally ignored, it is not uploaded to GitHub. For deployment, put public UI strings directly in the workflow and keep only the password in a Secret:\njobs:\n  build-deploy:\n    runs-on: ubuntu-latest\n    env:\n      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}\n      QUARTO_LOCK_LANG: pt-BR\n      QUARTO_LOCK_TITLE: \"Área reservada\"\n      QUARTO_LOCK_MESSAGE: \"Digite a senha para abrir este conteúdo.\"\n      QUARTO_LOCK_PASSWORD_LABEL: \"Senha\"\n      QUARTO_LOCK_BUTTON_LABEL: \"Entrar\"\n      QUARTO_LOCK_FOOTER: \"Protegido por Quarto Lock\"\n      QUARTO_LOCK_ERROR_INCORRECT: \"Senha incorreta.\"\n      QUARTO_LOCK_ERROR_SECURE_CONTEXT: \"Este site precisa ser aberto por HTTPS (ou localhost).\"\nThe UI strings are ordinary configuration and do not need to be Secrets. QUARTO_LOCK_PASSWORD is the value that must remain private."
+  },
+  {
+    "objectID": "customize.html#configuration-precedence",
+    "href": "customize.html#configuration-precedence",
+    "title": "Customize the lock screen",
+    "section": "Configuration precedence",
+    "text": "Configuration precedence\nWhen the same variable is defined in more than one place, quarto-lock uses this order:\n\nan existing environment variable, including GitHub Actions env values and Secrets;\nthe local .env file;\nthe built-in English default.\n\nThis lets local development use .env while production uses workflow variables and a GitHub Actions Secret for the password.\n\n\n\n\n\n\nWarningDo not commit real passwords\n\n\n\n.env is ignored by this repository on purpose. Commit .env.example to document the available settings, but keep QUARTO_LOCK_PASSWORD out of version control. For GitHub Actions, use Settings → Secrets and variables → Actions."
+  },
+  {
+    "objectID": "publishing.html",
+    "href": "publishing.html",
+    "title": "Publishing",
+    "section": "",
+    "text": "quarto-lock runs after Quarto renders. The deployment rule is therefore simple:\n\nRender first, encrypt second, publish only the encrypted output.\n\nThe recommended GitHub layout depends on whether your Quarto source may be public.\n\n\n\n\n\n\n\n\n\n\nSource repository\nGitHub Pages setup\nUse when\n\n\n\n\nPublic\nSame repository\nThe .qmd source may be public\n\n\nPrivate, plan supports private Pages\nSame repository\nYou want one repository and your plan supports it\n\n\nPrivate, Pages must come from a public repository\nPrivate source → separate public output repository\nThe source must stay private while the encrypted site is public\n\n\n\nThe live demo uses the third pattern:\nquarto-lock-demo-source       PRIVATE\nQuarto source / data / scripts\n            |\n            | GitHub Actions\n            | quarto render\n            | quarto-lock\n            v\nquarto-lock-demo              PUBLIC\nencrypted _site only\n            |\n            | GitHub Pages\n            v\nhttps://lsbjordao.github.io/quarto-lock-demo/"
+  },
+  {
+    "objectID": "publishing.html#choose-a-deployment-pattern",
+    "href": "publishing.html#choose-a-deployment-pattern",
+    "title": "Publishing",
+    "section": "",
+    "text": "Source repository\nGitHub Pages setup\nUse when\n\n\n\n\nPublic\nSame repository\nThe .qmd source may be public\n\n\nPrivate, plan supports private Pages\nSame repository\nYou want one repository and your plan supports it\n\n\nPrivate, Pages must come from a public repository\nPrivate source → separate public output repository\nThe source must stay private while the encrypted site is public\n\n\n\nThe live demo uses the third pattern:\nquarto-lock-demo-source       PRIVATE\nQuarto source / data / scripts\n            |\n            | GitHub Actions\n            | quarto render\n            | quarto-lock\n            v\nquarto-lock-demo              PUBLIC\nencrypted _site only\n            |\n            | GitHub Pages\n            v\nhttps://lsbjordao.github.io/quarto-lock-demo/"
+  },
+  {
+    "objectID": "publishing.html#install-the-extension",
+    "href": "publishing.html#install-the-extension",
+    "title": "Publishing",
+    "section": "1. Install the extension",
+    "text": "1. Install the extension\nFrom the consuming Quarto project:\nquarto add lsbjordao/quarto-lock\nEnable it in _quarto.yml:\nfilters:\n  - quarto-lock"
+  },
+  {
+    "objectID": "publishing.html#create-the-password-secret",
+    "href": "publishing.html#create-the-password-secret",
+    "title": "Publishing",
+    "section": "2. Create the password secret",
+    "text": "2. Create the password secret\nIn the repository:\nSettings → Secrets and variables → Actions → New repository secret\nCreate:\nName: QUARTO_LOCK_PASSWORD\nSecret: your long private passphrase\nNever commit the real password to _quarto.yml, .env, the workflow, or the generated site."
+  },
+  {
+    "objectID": "publishing.html#add-a-pages-workflow",
+    "href": "publishing.html#add-a-pages-workflow",
+    "title": "Publishing",
+    "section": "3. Add a Pages workflow",
+    "text": "3. Add a Pages workflow\nname: Publish locked Quarto site\n\non:\n  push:\n    branches: [main]\n  workflow_dispatch:\n\npermissions:\n  contents: read\n  pages: write\n  id-token: write\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    env:\n      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}\n\n    steps:\n      - uses: actions/checkout@v6\n\n      - uses: actions/setup-node@v7\n        with:\n          node-version: \"22\"\n\n      - uses: quarto-dev/quarto-actions/setup@v2\n\n      - uses: actions/configure-pages@v5\n\n      - name: Render and lock\n        run: quarto render\n\n      - uses: actions/upload-pages-artifact@v4\n        with:\n          path: _site\n\n  deploy:\n    needs: build\n    runs-on: ubuntu-latest\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}\n\n    steps:\n      - id: deployment\n        uses: actions/deploy-pages@v4\nThe important point is that actions/upload-pages-artifact receives _site after the quarto-lock post-render step has encrypted it."
+  },
+  {
+    "objectID": "publishing.html#create-two-repositories",
+    "href": "publishing.html#create-two-repositories",
+    "title": "Publishing",
+    "section": "1. Create two repositories",
+    "text": "1. Create two repositories\nFor example:\nYOUR-USER/my-site-source     Private\nYOUR-USER/my-site            Public\nThe private repository contains:\n*.qmd\n_quarto.yml\ndata/\nnotebooks/\nscripts/\n.github/workflows/\nThe public repository will contain generated files such as:\nindex.html\nindex.html.qlock\nother-page.html\nother-page.html.qlock\nquarto-lock-sw.js\nquarto-lock-bridge.js\n.nojekyll\nsite_libs/\nIt should not contain your .qmd source, private datasets, notebooks, build scripts or password."
+  },
+  {
+    "objectID": "publishing.html#test-the-locked-build-locally-first",
+    "href": "publishing.html#test-the-locked-build-locally-first",
+    "title": "Publishing",
+    "section": "2. Test the locked build locally first",
+    "text": "2. Test the locked build locally first\nIn the private source repository:\nexport QUARTO_LOCK_PASSWORD='replace-with-a-strong-passphrase'\nquarto render\nCheck that encrypted payloads were created:\nfind _site -name '*.qlock' -print\nServe the already-rendered directory directly:\npython3 -m http.server 3073 -d _site\nOpen:\nhttp://127.0.0.1:3073/\n\n\n\n\n\n\nWarningDo not use quarto preview to inspect the locked build\n\n\n\nquarto preview can perform another render and recreate clear output in _site. After locking, serve _site directly instead."
+  },
+  {
+    "objectID": "publishing.html#create-a-fine-grained-deployment-token",
+    "href": "publishing.html#create-a-fine-grained-deployment-token",
+    "title": "Publishing",
+    "section": "3. Create a fine-grained deployment token",
+    "text": "3. Create a fine-grained deployment token\nThe private source workflow needs permission to write the encrypted build to the public output repository.\nIn your GitHub account settings, not the repository settings:\nProfile photo → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token\nA direct GitHub route is also available under account settings at Fine-grained personal access tokens.\nSuggested token configuration:\nToken name:\nquarto-lock-pages-deploy\n\nResource owner:\nYOUR-USER\n\nRepository access:\nOnly select repositories\n→ YOUR-PUBLIC-OUTPUT-REPO\n\nRepository permissions:\nContents → Read and write\nEverything else can remain at No access.\nThe token name is only a label for you. The important restriction is that the token can write to only the public output repository.\nCopy the token when GitHub displays it. Treat it like a password."
+  },
+  {
+    "objectID": "publishing.html#save-the-token-as-a-secret-in-the-private-source-repository",
+    "href": "publishing.html#save-the-token-as-a-secret-in-the-private-source-repository",
+    "title": "Publishing",
+    "section": "4. Save the token as a secret in the private source repository",
+    "text": "4. Save the token as a secret in the private source repository\nOpen the private source repository:\nSettings → Secrets and variables → Actions → New repository secret\nCreate:\nName: PAGES_DEPLOY_TOKEN\nSecret: github_pat_...\nDo not paste the token into the workflow itself."
+  },
+  {
+    "objectID": "publishing.html#save-the-real-lock-password-as-another-secret",
+    "href": "publishing.html#save-the-real-lock-password-as-another-secret",
+    "title": "Publishing",
+    "section": "5. Save the real lock password as another secret",
+    "text": "5. Save the real lock password as another secret\nFor a real project, create:\nName: QUARTO_LOCK_PASSWORD\nSecret: your long private passphrase\nThe live quarto-lock-demo is intentionally different: its password is public because the purpose is to let anyone exercise the unlock flow."
+  },
+  {
+    "objectID": "publishing.html#add-the-deployment-workflow-to-the-private-source-repository",
+    "href": "publishing.html#add-the-deployment-workflow-to-the-private-source-repository",
+    "title": "Publishing",
+    "section": "6. Add the deployment workflow to the private source repository",
+    "text": "6. Add the deployment workflow to the private source repository\nCreate .github/workflows/publish.yml:\nname: Publish encrypted Quarto site\n\non:\n  push:\n    branches: [main]\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: encrypted-pages-publish\n  cancel-in-progress: true\n\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    env:\n      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}\n\n    steps:\n      - name: Check out private source\n        uses: actions/checkout@v6\n\n      - name: Set up Node\n        uses: actions/setup-node@v7\n        with:\n          node-version: \"22\"\n\n      - name: Set up Quarto\n        uses: quarto-dev/quarto-actions/setup@v2\n\n      - name: Install quarto-lock\n        run: quarto add --no-prompt lsbjordao/quarto-lock\n\n      - name: Render and encrypt\n        run: quarto render\n\n      - name: Verify encrypted output exists\n        shell: bash\n        run: |\n          test -f _site/index.html\n          test -f _site/index.html.qlock\n          find _site -type f -name '*.qlock' -print -quit | grep -q .\n\n      - name: Check out public output repository\n        uses: actions/checkout@v6\n        with:\n          repository: YOUR-USER/YOUR-PUBLIC-OUTPUT-REPO\n          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}\n          path: pages-target\n\n      - name: Publish encrypted output only\n        shell: bash\n        run: |\n          cd pages-target\n\n          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +\n          cp -a \"$GITHUB_WORKSPACE/_site/.\" .\n          touch .nojekyll\n\n          git config user.name \"github-actions[bot]\"\n          git config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"\n          git add -A\n\n          if git diff --cached --quiet; then\n            echo \"No deployment changes.\"\n            exit 0\n          fi\n\n          git commit -m \"Deploy encrypted Quarto site\"\n          git push origin HEAD:main\nThis workflow never copies the private repository itself into the public repository. Only _site crosses the boundary."
+  },
+  {
+    "objectID": "publishing.html#enable-pages-in-the-public-output-repository",
+    "href": "publishing.html#enable-pages-in-the-public-output-repository",
+    "title": "Publishing",
+    "section": "7. Enable Pages in the public output repository",
+    "text": "7. Enable Pages in the public output repository\nOpen the public output repository:\nSettings → Pages → Build and deployment\nSelect:\nSource: Deploy from a branch\nBranch: main\nFolder: / (root)\nSave the setting.\nFor a repository named YOUR-USER/my-site, the default project Pages URL is:\nhttps://YOUR-USER.github.io/my-site/"
+  },
+  {
+    "objectID": "publishing.html#push-the-private-source",
+    "href": "publishing.html#push-the-private-source",
+    "title": "Publishing",
+    "section": "8. Push the private source",
+    "text": "8. Push the private source\nYour normal workflow is now simply:\ngit add .\ngit commit -m \"Update site\"\ngit push\nGitHub Actions performs the rest:\nprivate source push\n      ↓\nQuarto render\n      ↓\nquarto-lock post-render\n      ↓\nencrypted _site\n      ↓\ncopy only _site to public repo\n      ↓\nGitHub Pages"
+  },
+  {
+    "objectID": "publishing.html#cannot-find-module-...-_extensionsquarto-lockrun.mjs",
+    "href": "publishing.html#cannot-find-module-...-_extensionsquarto-lockrun.mjs",
+    "title": "Publishing",
+    "section": "Cannot find module ... _extensions/quarto-lock/run.mjs",
+    "text": "Cannot find module ... _extensions/quarto-lock/run.mjs\nCurrent releases install from GitHub under a namespaced extension path such as:\n_extensions/lsbjordao/quarto-lock/\nUpdate/reinstall the extension:\nrm -rf _extensions/lsbjordao/quarto-lock\nquarto add --no-prompt lsbjordao/quarto-lock"
+  },
+  {
+    "objectID": "publishing.html#src-refspec-main-does-not-match-any",
+    "href": "publishing.html#src-refspec-main-does-not-match-any",
+    "title": "Publishing",
+    "section": "src refspec main does not match any",
+    "text": "src refspec main does not match any\nThe local repository has no commit on main. Check:\ngit status\ngit branch --show-current\ngit log --oneline -5\nCreate the first commit before pushing."
+  },
+  {
+    "objectID": "publishing.html#non-fast-forward",
+    "href": "publishing.html#non-fast-forward",
+    "title": "Publishing",
+    "section": "non-fast-forward",
+    "text": "non-fast-forward\nThe remote branch already has commits. Fetch and inspect before forcing anything:\ngit fetch origin\ngit log --oneline --graph --decorate --all -10\nDo not use --force unless you intentionally want to replace the remote history."
+  },
+  {
+    "objectID": "publishing.html#the-site-is-clear-after-a-render",
+    "href": "publishing.html#the-site-is-clear-after-a-render",
+    "title": "Publishing",
+    "section": "The site is clear after a render",
+    "text": "The site is clear after a render\nConfirm that you performed a full render with the password present:\nQUARTO_LOCK_PASSWORD='...' quarto render\nThen verify:\nfind _site -name '*.qlock' -print\nDo not run quarto preview afterward."
+  }
+]
