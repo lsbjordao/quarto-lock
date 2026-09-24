@@ -12,9 +12,9 @@ The repository includes `.env.example`. Copy it to `.env` in the root of your Qu
 cp .env.example .env
 ```
 
-`quarto-lock` automatically reads `.env` when it runs. Regular environment variables and GitHub Actions secrets take precedence over values from `.env`.
+`quarto-lock` automatically reads `.env` when it runs. Regular environment variables and GitHub Actions variables/Secrets take precedence over values from `.env`.
 
-The recommended `.env` is for **local UI configuration only**. The real shared password should still be supplied through your shell or a GitHub Actions secret rather than committed to a file.
+The recommended `.env` is for **local UI configuration only**. The real shared password should still be supplied through your shell or a GitHub Actions Secret rather than committed to a file.
 
 ```dotenv
 QUARTO_LOCK_LANG=en
@@ -66,6 +66,28 @@ QUARTO_LOCK_ERROR_INCORRECT="Contraseña incorrecta."
 QUARTO_LOCK_ERROR_SECURE_CONTEXT="Este sitio debe abrirse mediante HTTPS (o localhost)."
 ```
 
+## Use translated text in GitHub Actions
+
+Because `.env` is intentionally ignored, it is not uploaded to GitHub. For deployment, put public UI strings directly in the workflow and keep only the password in a Secret:
+
+```yaml
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+      QUARTO_LOCK_LANG: pt-BR
+      QUARTO_LOCK_TITLE: "Área reservada"
+      QUARTO_LOCK_MESSAGE: "Digite a senha para abrir este conteúdo."
+      QUARTO_LOCK_PASSWORD_LABEL: "Senha"
+      QUARTO_LOCK_BUTTON_LABEL: "Entrar"
+      QUARTO_LOCK_FOOTER: "Protegido por Quarto Lock"
+      QUARTO_LOCK_ERROR_INCORRECT: "Senha incorreta."
+      QUARTO_LOCK_ERROR_SECURE_CONTEXT: "Este site precisa ser aberto por HTTPS (ou localhost)."
+```
+
+The UI strings are ordinary configuration and do not need to be Secrets. `QUARTO_LOCK_PASSWORD` is the value that must remain private.
+
 ## Configuration precedence
 
 When the same variable is defined in more than one place, `quarto-lock` uses this order:
@@ -74,7 +96,7 @@ When the same variable is defined in more than one place, `quarto-lock` uses thi
 2. the local `.env` file;
 3. the built-in English default.
 
-This means a project can keep translated UI text in `.env` while the password remains a GitHub Actions Secret in production.
+This lets local development use `.env` while production uses workflow variables and a GitHub Actions Secret for the password.
 
 ::: {.callout-warning title="Do not commit real passwords"}
 `.env` is ignored by this repository on purpose. Commit `.env.example` to document the available settings, but keep `QUARTO_LOCK_PASSWORD` out of version control. For GitHub Actions, use **Settings → Secrets and variables → Actions**.
