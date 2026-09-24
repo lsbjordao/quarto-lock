@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/quarto-lock.test.mjs"
+    "test": "node --test tests/quarto-lock.test.mjs",
+    "preview:locked": "node scripts/preview-locked.mjs"
   },
   "engines": {
     "node": ">=20"
