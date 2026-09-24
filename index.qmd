@@ -1,0 +1,53 @@
+---
+title: "quarto-lock"
+subtitle: "Password-lock Quarto sites on static hosting"
+---
+
+# A cryptographic lock for Quarto
+
+`quarto-lock` protects a rendered Quarto website or book on static hosting by encrypting its local output at build time and decrypting it in the visitor's browser only after the shared password is entered.
+
+::: {.callout-tip title="Try this demo"}
+This repository is intentionally configured with a **public demo password**:
+
+**`quarto-lock-demo`**
+
+Use it on the lock screen to open the deployed example.
+:::
+
+> [!WARNING]
+> `quarto-lock-demo` is deliberately public and must **never** be reused for real protected content. In your own project, provide a strong private password through the `QUARTO_LOCK_PASSWORD` environment variable or a GitHub Actions secret.
+
+## What is protected?
+
+The lock is applied after Quarto renders the project. Local HTML, CSS, JavaScript, images, fonts, search indexes, JSON files, PDFs, ZIP files, and other local downloads can therefore be encrypted together.
+
+The public host receives ciphertext (`*.qlock`) plus the small runtime required to display the lock screen and decrypt resources in the browser.
+
+## Install
+
+```bash
+quarto add lsbjordao/quarto-lock
+```
+
+Then enable the extension in `_quarto.yml`:
+
+```yaml
+filters:
+  - quarto-lock
+```
+
+For a real project, render with a private password:
+
+```bash
+export QUARTO_LOCK_PASSWORD='replace-this-with-a-strong-passphrase'
+quarto render
+```
+
+For GitHub Pages, store the password in **Settings → Secrets and variables → Actions** as `QUARTO_LOCK_PASSWORD` rather than committing it.
+
+## Why “lock”, not “login”?
+
+This is not an account system. There are no users, password recovery, roles, or server-side sessions. It is client-side cryptographic access control designed for static hosting: anyone may download the encrypted payload, but the content cannot be decrypted without the shared password.
+
+This demo intentionally makes its password public so you can verify the full workflow end to end.
