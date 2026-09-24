@@ -53,7 +53,7 @@ The filter itself is intentionally a no-op. Activating it also contributes a pro
 
 ## Local use
 
-Normal `quarto preview` is **not locked**. This is deliberate: incremental preview would otherwise repeatedly encrypt and remove assets while you edit.
+Normal `quarto preview` is **not locked**. This is deliberate: Quarto preview performs incremental renders, while quarto-lock's production build is destructive—it replaces clear output with encrypted payloads.
 
 A full render is locked:
 
@@ -61,6 +61,24 @@ A full render is locked:
 export QUARTO_LOCK_PASSWORD='use-a-long-shared-password'
 quarto render
 ```
+
+To inspect that locked build locally, serve `_site` directly instead of starting `quarto preview` afterwards:
+
+```bash
+python3 -m http.server 3073 -d _site
+```
+
+Then open `http://localhost:3073/`.
+
+For this repository's public demo, there is also a convenience command:
+
+```bash
+npm run preview:locked
+```
+
+It renders a locked build and serves `_site` on port 3073. If `QUARTO_LOCK_PASSWORD` is not set, the repository demo intentionally falls back to the public password `quarto-lock-demo`.
+
+> Important: running `quarto preview` after `quarto render` causes Quarto to render the site again in preview mode, recreating clear HTML. Use the static-server command above (or `npm run preview:locked`) when testing the lock locally.
 
 To force locking outside a full-project render:
 
@@ -84,7 +102,7 @@ Name it:
 QUARTO_LOCK_PASSWORD
 ```
 
-A workflow is included under `example/.github/workflows/publish.yml`.
+A GitHub Pages workflow is included under `.github/workflows/publish.yml`.
 
 The important part is that the secret exists **only while GitHub Actions renders the project**:
 
@@ -93,7 +111,7 @@ env:
   QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}
 ```
 
-Never put the password directly into `_quarto.yml`, a `.qmd` file, JavaScript, or the workflow YAML.
+Never put the password directly into `_quarto.yml`, a `.qmd` file, JavaScript, or the workflow YAML for real protected content. The public demo in this repository is intentionally an exception.
 
 ## Configuration
 
