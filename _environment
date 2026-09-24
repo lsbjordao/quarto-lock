@@ -1,0 +1,4 @@
+# quarto-lock documentation site
+# This repository documents the extension itself and must remain public/unlocked.
+# Quarto loads this file automatically for project renders.
+QUARTO_LOCK_DISABLED=true
