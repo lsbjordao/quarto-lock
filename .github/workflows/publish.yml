@@ -1,4 +1,4 @@
-name: Publish quarto-lock demo
+name: Publish quarto-lock documentation
 
 on:
   push:
@@ -17,12 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # Public on purpose: this repository is the quarto-lock demonstration.
-      # Real projects should use a GitHub Actions secret instead.
-      QUARTO_LOCK_PASSWORD: "quarto-lock-demo"
-      QUARTO_LOCK_TITLE: "quarto-lock demo"
-      QUARTO_LOCK_MESSAGE: "Demo password: quarto-lock-demo"
 
     steps:
       - name: Check out repository
@@ -39,10 +33,10 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Render and lock site
+      - name: Render documentation
         run: quarto render
 
-      - name: Upload encrypted site artifact
+      - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
