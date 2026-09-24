@@ -1,0 +1,510 @@
+---
+title: "Publishing"
+subtitle: "Deploy encrypted Quarto output safely with GitHub Pages"
+toc: true
+---
+
+# Publishing `quarto-lock`
+
+`quarto-lock` runs **after** Quarto renders. The deployment rule is therefore simple:
+
+> **Render first, encrypt second, publish only the encrypted output.**
+
+The recommended GitHub layout depends on whether your Quarto source may be public.
+
+## Choose a deployment pattern
+
+| Source repository | GitHub Pages setup | Use when |
+|---|---|---|
+| Public | Same repository | The `.qmd` source may be public |
+| Private, plan supports private Pages | Same repository | You want one repository and your plan supports it |
+| Private, Pages must come from a public repository | **Private source → separate public output repository** | The source must stay private while the encrypted site is public |
+
+The live demo uses the third pattern:
+
+```text
+quarto-lock-demo-source       PRIVATE
+Quarto source / data / scripts
+            |
+            | GitHub Actions
+            | quarto render
+            | quarto-lock
+            v
+quarto-lock-demo              PUBLIC
+encrypted _site only
+            |
+            | GitHub Pages
+            v
+https://lsbjordao.github.io/quarto-lock-demo/
+```
+
+# Pattern A — same repository
+
+Use this when the repository itself may be public, or when your GitHub plan supports Pages for the repository visibility you need.
+
+## 1. Install the extension
+
+From the consuming Quarto project:
+
+```bash
+quarto add lsbjordao/quarto-lock
+```
+
+Enable it in `_quarto.yml`:
+
+```yaml
+filters:
+  - quarto-lock
+```
+
+## 2. Create the password secret
+
+In the repository:
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+Create:
+
+```text
+Name: QUARTO_LOCK_PASSWORD
+Secret: your long private passphrase
+```
+
+Never commit the real password to `_quarto.yml`, `.env`, the workflow, or the generated site.
+
+## 3. Add a Pages workflow
+
+```yaml
+name: Publish locked Quarto site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - uses: actions/configure-pages@v5
+
+      - name: Render and lock
+        run: quarto render
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+The important point is that `actions/upload-pages-artifact` receives `_site` **after** the `quarto-lock` post-render step has encrypted it.
+
+# Pattern B — private source → public encrypted output
+
+This pattern is useful when the Quarto source must remain private, while GitHub Pages is served from a public repository.
+
+The public repository is **not** a mirror of the source repository. It is a deployment target containing only the generated lock shell, runtime files and ciphertext.
+
+## 1. Create two repositories
+
+For example:
+
+```text
+YOUR-USER/my-site-source     Private
+YOUR-USER/my-site            Public
+```
+
+The private repository contains:
+
+```text
+*.qmd
+_quarto.yml
+data/
+notebooks/
+scripts/
+.github/workflows/
+```
+
+The public repository will contain generated files such as:
+
+```text
+index.html
+index.html.qlock
+other-page.html
+other-page.html.qlock
+quarto-lock-sw.js
+quarto-lock-bridge.js
+.nojekyll
+site_libs/
+```
+
+It should **not** contain your `.qmd` source, private datasets, notebooks, build scripts or password.
+
+## 2. Test the locked build locally first
+
+In the private source repository:
+
+```bash
+export QUARTO_LOCK_PASSWORD='replace-with-a-strong-passphrase'
+quarto render
+```
+
+Check that encrypted payloads were created:
+
+```bash
+find _site -name '*.qlock' -print
+```
+
+Serve the already-rendered directory directly:
+
+```bash
+python3 -m http.server 3073 -d _site
+```
+
+Open:
+
+```text
+http://127.0.0.1:3073/
+```
+
+::: {.callout-warning title="Do not use quarto preview to inspect the locked build"}
+`quarto preview` can perform another render and recreate clear output in `_site`. After locking, serve `_site` directly instead.
+:::
+
+## 3. Create a fine-grained deployment token
+
+The private source workflow needs permission to write the encrypted build to the public output repository.
+
+In your GitHub **account** settings, not the repository settings:
+
+**Profile photo → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**
+
+A direct GitHub route is also available under account settings at **Fine-grained personal access tokens**.
+
+Suggested token configuration:
+
+```text
+Token name:
+quarto-lock-pages-deploy
+
+Resource owner:
+YOUR-USER
+
+Repository access:
+Only select repositories
+→ YOUR-PUBLIC-OUTPUT-REPO
+
+Repository permissions:
+Contents → Read and write
+```
+
+Everything else can remain at **No access**.
+
+The token name is only a label for you. The important restriction is that the token can write to **only the public output repository**.
+
+Copy the token when GitHub displays it. Treat it like a password.
+
+## 4. Save the token as a secret in the private source repository
+
+Open the **private source repository**:
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+Create:
+
+```text
+Name: PAGES_DEPLOY_TOKEN
+Secret: github_pat_...
+```
+
+Do not paste the token into the workflow itself.
+
+## 5. Save the real lock password as another secret
+
+For a real project, create:
+
+```text
+Name: QUARTO_LOCK_PASSWORD
+Secret: your long private passphrase
+```
+
+The live `quarto-lock-demo` is intentionally different: its password is public because the purpose is to let anyone exercise the unlock flow.
+
+## 6. Add the deployment workflow to the private source repository
+
+Create `.github/workflows/publish.yml`:
+
+```yaml
+name: Publish encrypted Quarto site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: encrypted-pages-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+
+    steps:
+      - name: Check out private source
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install quarto-lock
+        run: quarto add --no-prompt lsbjordao/quarto-lock
+
+      - name: Render and encrypt
+        run: quarto render
+
+      - name: Verify encrypted output exists
+        shell: bash
+        run: |
+          test -f _site/index.html
+          test -f _site/index.html.qlock
+          find _site -type f -name '*.qlock' -print -quit | grep -q .
+
+      - name: Check out public output repository
+        uses: actions/checkout@v6
+        with:
+          repository: YOUR-USER/YOUR-PUBLIC-OUTPUT-REPO
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          path: pages-target
+
+      - name: Publish encrypted output only
+        shell: bash
+        run: |
+          cd pages-target
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$GITHUB_WORKSPACE/_site/." .
+          touch .nojekyll
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No deployment changes."
+            exit 0
+          fi
+
+          git commit -m "Deploy encrypted Quarto site"
+          git push origin HEAD:main
+```
+
+This workflow never copies the private repository itself into the public repository. Only `_site` crosses the boundary.
+
+## 7. Enable Pages in the public output repository
+
+Open the **public output repository**:
+
+**Settings → Pages → Build and deployment**
+
+Select:
+
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: / (root)
+```
+
+Save the setting.
+
+For a repository named `YOUR-USER/my-site`, the default project Pages URL is:
+
+```text
+https://YOUR-USER.github.io/my-site/
+```
+
+## 8. Push the private source
+
+Your normal workflow is now simply:
+
+```bash
+git add .
+git commit -m "Update site"
+git push
+```
+
+GitHub Actions performs the rest:
+
+```text
+private source push
+      ↓
+Quarto render
+      ↓
+quarto-lock post-render
+      ↓
+encrypted _site
+      ↓
+copy only _site to public repo
+      ↓
+GitHub Pages
+```
+
+# Optional: stronger leakage checks
+
+For sensitive projects, make CI prove that known private markers do not survive in clear text.
+
+For example, put a test marker in a protected source page:
+
+```text
+MY_PRIVATE_BUILD_MARKER_12345
+```
+
+Then add after rendering:
+
+```yaml
+- name: Fail if protected marker leaked in clear text
+  shell: bash
+  run: |
+    if grep -R -I -F \
+      --exclude='*.qlock' \
+      --exclude='quarto-lock-sw.js' \
+      --exclude='quarto-lock-bridge.js' \
+      'MY_PRIVATE_BUILD_MARKER_12345' _site; then
+      echo "Protected marker leaked into clear-text output." >&2
+      exit 1
+    fi
+```
+
+The live demo uses this pattern.
+
+# GitHub Actions minutes and private repositories
+
+GitHub-hosted Actions in private repositories can be subject to the included usage and billing rules of your account plan.
+
+If a private-repository workflow is marked failed **before any step starts**, check:
+
+1. **Settings → Billing and licensing → Usage** for Actions usage;
+2. whether Actions are enabled for the repository/account;
+3. spending limits or billing configuration;
+4. the workflow run's GitHub-generated annotation.
+
+A public repository can use standard GitHub-hosted runners without the same private-repository minute accounting. An alternative architecture is therefore to run the workflow from the public output repository and use a fine-grained **read-only** token to fetch the private source. The security trade-off is different: the public repository then contains a secret capable of reading the private source, so keep that token restricted to one repository and `Contents: Read-only`.
+
+# Updating the password
+
+A password change is a rebuild:
+
+1. update `QUARTO_LOCK_PASSWORD` in the source repository's Actions Secret;
+2. rerun or push the workflow;
+3. `quarto-lock` generates a new build salt and encrypts the site again;
+4. publish the new encrypted output.
+
+Old browser session keys do not unlock a newly generated build.
+
+# Troubleshooting
+
+## `Cannot find module ... _extensions/quarto-lock/run.mjs`
+
+Current releases install from GitHub under a namespaced extension path such as:
+
+```text
+_extensions/lsbjordao/quarto-lock/
+```
+
+Update/reinstall the extension:
+
+```bash
+rm -rf _extensions/lsbjordao/quarto-lock
+quarto add --no-prompt lsbjordao/quarto-lock
+```
+
+## `src refspec main does not match any`
+
+The local repository has no commit on `main`. Check:
+
+```bash
+git status
+git branch --show-current
+git log --oneline -5
+```
+
+Create the first commit before pushing.
+
+## `non-fast-forward`
+
+The remote branch already has commits. Fetch and inspect before forcing anything:
+
+```bash
+git fetch origin
+git log --oneline --graph --decorate --all -10
+```
+
+Do not use `--force` unless you intentionally want to replace the remote history.
+
+## The site is clear after a render
+
+Confirm that you performed a full render with the password present:
+
+```bash
+QUARTO_LOCK_PASSWORD='...' quarto render
+```
+
+Then verify:
+
+```bash
+find _site -name '*.qlock' -print
+```
+
+Do not run `quarto preview` afterward.
+
+# Live reference implementation
+
+The project used to exercise this deployment pattern is:
+
+- documentation and extension: <https://lsbjordao.github.io/quarto-lock/>
+- encrypted live demo: <https://lsbjordao.github.io/quarto-lock-demo/>
+- public encrypted-output repository: <https://github.com/lsbjordao/quarto-lock-demo>
+
+The live demo password is intentionally public:
+
+```text
+quarto-lock-demo
+```
+
+That password is for demonstration only.
