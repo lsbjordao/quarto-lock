@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/quarto-lock-logo.png" alt="quarto-lock" width="600">
+</p>
+
 # quarto-lock
 
 Password-lock a rendered **Quarto HTML website or book on static hosting** (including GitHub Pages) without embedding the password in published files.
