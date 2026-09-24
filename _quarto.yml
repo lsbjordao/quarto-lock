@@ -11,14 +11,11 @@ website:
         text: Home
       - href: customize.qmd
         text: Customize UI
-      - href: second.qmd
-        text: Second page
+      - href: https://lsbjordao.github.io/quarto-lock-demo/
+        text: Live Demo
       - href: https://github.com/lsbjordao/quarto-lock
         text: GitHub
 
 format:
   html:
     theme: cosmo
-
-filters:
-  - quarto-lock
