@@ -8,5 +8,4 @@ contributes:
   metadata:
     project:
       post-render:
-        - node _extensions/quarto-lock/lock.mjs
-        - node _extensions/quarto-lock/english-ui.mjs
+        - node _extensions/quarto-lock/run.mjs
