@@ -3,6 +3,8 @@ title: "quarto-lock"
 subtitle: "Password-lock Quarto sites on static hosting"
 ---
 
+![](assets/quarto-lock-logo.png){fig-alt="quarto-lock logo" width=600}
+
 # A cryptographic lock for Quarto
 
 `quarto-lock` protects a rendered Quarto website or book on static hosting by encrypting its local output at build time and decrypting it in the visitor's browser only after the shared password is entered.
