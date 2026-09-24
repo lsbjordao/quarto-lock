@@ -1,0 +1,13 @@
+---
+title: "Second protected page"
+---
+
+# Navigation stays unlocked during the session
+
+If you reached this page after entering the demo password on the home page, `quarto-lock` reused the derived session key and decrypted this page without asking for the password again.
+
+The public demonstration password is still:
+
+**`quarto-lock-demo`**
+
+In real projects, do not commit the password into the source.
