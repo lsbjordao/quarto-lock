@@ -90,19 +90,26 @@ node _extensions/quarto-lock/lock.mjs
 
 The password must contain at least 12 UTF-8 bytes. A longer passphrase is strongly recommended.
 
-## GitHub Pages
+## GitHub deployment
 
-Keep the source repository private if desired, and add a repository Actions secret:
+GitHub Pages is available from public repositories on GitHub Free. Publishing Pages directly from a private repository requires a GitHub plan that supports private-repository Pages.
+
+For that reason, quarto-lock supports two useful patterns:
+
+1. **Same repository → `gh-pages`** — simplest for a public source repository or a plan that supports Pages from private repositories.
+2. **Private source repository → GitHub Actions → separate public Pages repository** — recommended when the Quarto source must remain private on GitHub Free. The public repository receives only the already-encrypted `_site` output.
+
+For the complete setup, including the `.github/workflows/publish.yml` files, Actions secrets, a fine-grained deployment token, and the private-source/public-Pages workflow, see the rendered `index.qmd` documentation in this repository.
+
+For real projects, keep the password in:
 
 `Settings → Secrets and variables → Actions → New repository secret`
 
-Name it:
+using the name:
 
 ```text
 QUARTO_LOCK_PASSWORD
 ```
-
-A GitHub Pages workflow is included under `.github/workflows/publish.yml`.
 
 The important part is that the secret exists **only while GitHub Actions renders the project**:
 
