@@ -9,6 +9,8 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: publishing.qmd
+        text: Publishing
       - href: customize.qmd
         text: Customize UI
       - href: https://lsbjordao.github.io/quarto-lock-demo/
