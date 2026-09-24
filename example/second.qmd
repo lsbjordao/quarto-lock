@@ -1,5 +1,0 @@
----
-title: "Second protected page"
----
-
-Navigation in the same browser tab should not ask for the password again because quarto-lock keeps the **derived key** in `sessionStorage` for the build.
