@@ -8,7 +8,7 @@ subtitle: "Password-lock Quarto sites on static hosting"
 `quarto-lock` protects a rendered Quarto website or book on static hosting by encrypting its local output at build time and decrypting it in the visitor's browser only after the shared password is entered.
 
 ::: {.callout-tip title="Try the live demo"}
-The documentation site you are reading is intentionally public and unlocked.
+The documentation site you are reading is intentionally **public and unlocked**.
 
 The protected demonstration lives separately at:
 
@@ -18,15 +18,13 @@ Demo password:
 
 **`quarto-lock-demo`**
 
-The demo source is intentionally kept separate from this public extension repository so the example can reproduce the real use case: private Quarto source, public static hosting, encrypted published content.
+The demo source is separate from this public extension repository so it can reproduce the intended use case: private Quarto source, public static hosting, encrypted published content.
 :::
 
 > [!WARNING]
 > `quarto-lock-demo` is deliberately public and exists only for demonstration. Never reuse it for real protected content. In your own project, provide a strong private password through `QUARTO_LOCK_PASSWORD` or a GitHub Actions Secret.
 
 ## Public extension, separate protected demo
-
-The project deliberately separates three concerns:
 
 ```text
 quarto-lock
@@ -35,7 +33,7 @@ extension + README + documentation
         |
         | quarto add lsbjordao/quarto-lock
         v
-private Quarto project
+private or public Quarto project
 source, data, notebooks, .qmd files
         |
         | quarto render
@@ -53,21 +51,21 @@ The live example is published at <https://lsbjordao.github.io/quarto-lock-demo/>
 
 ## What is protected?
 
-The lock is applied after Quarto renders the project. Local HTML, CSS, JavaScript, images, fonts, search indexes, JSON files, PDFs, ZIP files, and other local downloads can therefore be encrypted together.
+The lock is applied after Quarto renders the consuming project. Local HTML, CSS, JavaScript, images, fonts, search indexes, JSON files, PDFs, ZIP files, and other local downloads can therefore be encrypted together.
 
-The public host receives ciphertext (`*.qlock`) plus the small runtime required to display the lock screen and decrypt resources in the browser.
+The public protected host receives ciphertext (`*.qlock`) plus the small runtime required to display the lock screen and decrypt resources in the browser.
 
 External resources such as CDNs, remote images, and remote APIs remain external and are not encrypted by `quarto-lock`.
 
 ## Install
 
-From a Quarto project:
+From the Quarto project you want to protect:
 
 ```bash
 quarto add lsbjordao/quarto-lock
 ```
 
-Then enable the extension in the consuming project's `_quarto.yml`:
+Then enable the extension in that project's `_quarto.yml`:
 
 ```yaml
 filters:
@@ -134,9 +132,9 @@ Commit `.env.example` as documentation, but ignore the working `.env` file. UI s
 
 See **Customize UI** in the navigation for all available strings and configuration precedence.
 
-## Test a locked build locally
+## Test a protected project locally
 
-Normal `quarto preview` is intentionally **not locked**. Quarto preview performs incremental renders, while `quarto-lock` replaces clear rendered output with encrypted payloads.
+Normal `quarto preview` is intentionally **not locked**. Quarto preview performs incremental renders and can recreate clear HTML in `_site`.
 
 In a project using the extension:
 
@@ -148,16 +146,8 @@ python3 -m http.server 3073 -d _site
 
 Then open <http://127.0.0.1:3073/>.
 
-For extension development in this repository, use:
-
-```bash
-npm run preview:locked
-```
-
-That command renders the public documentation, applies the lock explicitly to the generated `_site`, and serves it locally. The fallback test password is `quarto-lock-demo`.
-
 ::: {.callout-warning title="Do not run quarto preview after locking"}
-Running `quarto preview` after a locked render can recreate clear HTML in `_site`. To inspect a locked build, serve `_site` directly or use `npm run preview:locked`.
+Running `quarto preview` after a locked render can recreate clear HTML in `_site`. To inspect the encrypted build, serve `_site` directly.
 :::
 
 # Publishing with GitHub
@@ -168,7 +158,7 @@ That distinction matters for private projects.
 
 ## Pattern A — publish from the same repository
 
-Use this when the source repository may be public, or when your GitHub plan supports Pages from private repositories.
+Use this when the protected source repository may be public, or when your GitHub plan supports Pages from private repositories.
 
 Store the password under:
 
