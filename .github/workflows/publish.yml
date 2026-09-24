@@ -1,0 +1,41 @@
+name: Quarto Lock → GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    env:
+      # Public on purpose: this repository is the quarto-lock demonstration.
+      # Real projects should use: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+      QUARTO_LOCK_PASSWORD: "quarto-lock-demo"
+      QUARTO_LOCK_TITLE: "quarto-lock demo"
+      QUARTO_LOCK_MESSAGE: "Demo password: quarto-lock-demo"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render and publish encrypted demo
+        uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QUARTO_LOCK_PASSWORD: "quarto-lock-demo"
+          QUARTO_LOCK_TITLE: "quarto-lock demo"
+          QUARTO_LOCK_MESSAGE: "Demo password: quarto-lock-demo"
