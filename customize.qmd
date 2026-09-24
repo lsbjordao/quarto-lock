@@ -27,18 +27,20 @@ QUARTO_LOCK_ERROR_INCORRECT="Incorrect password."
 QUARTO_LOCK_ERROR_SECURE_CONTEXT="This site must be opened over HTTPS (or localhost)."
 ```
 
-Then render normally:
+Then render your project normally:
 
 ```bash
 export QUARTO_LOCK_PASSWORD='your-long-private-passphrase'
 quarto render
 ```
 
-or test the locked build locally:
+To inspect the locked output locally, serve the rendered `_site` directly:
 
 ```bash
-npm run preview:locked
+python3 -m http.server 3073 -d _site
 ```
+
+Do not run `quarto preview` after the locked render, because an incremental preview render can recreate clear HTML in `_site`.
 
 ## Example: Portuguese
 
