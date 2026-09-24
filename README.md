@@ -1,12 +1,55 @@
 # quarto-lock
 
-Password-lock a rendered **Quarto HTML website or book on static hosting** (including GitHub Pages) without embedding the password in the published files.
+Password-lock a rendered **Quarto HTML website or book on static hosting** (including GitHub Pages) without embedding the password in published files.
 
 `quarto-lock` is intentionally a **lock**, not an account/authentication system. It turns static output into ciphertext at build time and decrypts it in the browser only after the visitor enters the shared password.
 
+## Live demo
+
+The extension repository and documentation are public. The protected demonstration is separate:
+
+**https://lsbjordao.github.io/quarto-lock-demo/**
+
+Demo password:
+
+```text
+quarto-lock-demo
+```
+
+The password is public on purpose. The demo exists to show that a Quarto source project can remain private while only encrypted static output is exposed publicly.
+
+> Never reuse `quarto-lock-demo` for real protected content.
+
+## Architecture
+
+```text
+lsbjordao/quarto-lock
+PUBLIC
+extension + documentation
+        |
+        | quarto add lsbjordao/quarto-lock
+        v
+private Quarto project
+*.qmd / data / notebooks / scripts
+        |
+        | quarto render
+        | quarto-lock encrypts
+        v
+public static host
+lock shell + *.qlock ciphertext
+        |
+        | shared password
+        v
+browser-side decryption
+```
+
+The key deployment principle is:
+
+> **Secrets enter the build; only ciphertext leaves the build.**
+
 ## What it protects
 
-Version 0.1 encrypts the local rendered site, not just the HTML:
+Version 0.1 encrypts the local rendered site, not just HTML:
 
 - HTML pages
 - CSS and JavaScript
@@ -26,7 +69,7 @@ External resources such as CDNs, remote images, and remote APIs remain external 
 - random 128-bit salt per build
 - unique random 96-bit IV per protected file
 - authenticated ciphertext
-- the password is never written to the generated HTML, JavaScript, or encrypted payloads
+- password is never written to generated HTML, JavaScript, or encrypted payloads
 
 ## Install
 
@@ -36,7 +79,7 @@ From a Quarto project:
 quarto add lsbjordao/quarto-lock
 ```
 
-Then enable it in `_quarto.yml`:
+Enable it in the consuming project's `_quarto.yml`:
 
 ```yaml
 filters:
@@ -52,9 +95,9 @@ quarto render
 
 ## Local locked preview
 
-Normal `quarto preview` is intentionally **not locked** because Quarto preview performs incremental renders and can recreate clear HTML in `_site`.
+Normal `quarto preview` is intentionally **not locked** because incremental renders can recreate clear HTML in `_site`.
 
-To inspect a locked build locally:
+To inspect a locked build in a consuming project:
 
 ```bash
 export QUARTO_LOCK_PASSWORD='use-a-long-shared-password'
@@ -64,33 +107,25 @@ python3 -m http.server 3073 -d _site
 
 Then open `http://127.0.0.1:3073/`.
 
-This repository also includes:
+For extension development in this repository:
 
 ```bash
 npm run preview:locked
 ```
 
-For the demo repository, that command falls back to the public demonstration password `quarto-lock-demo` if `QUARTO_LOCK_PASSWORD` is not set.
-
-To force the complete lock pipeline outside a normal full-project render, use the unified runner:
-
-```bash
-QUARTO_LOCK_FORCE=1 \
-QUARTO_LOCK_PASSWORD='use-a-long-shared-password' \
-node _extensions/quarto-lock/run.mjs
-```
+That command renders the public documentation, explicitly applies the lock to `_site`, and serves it locally. If no password is set, it uses the public test password `quarto-lock-demo`.
 
 ## Customize or translate the lock screen
 
 The built-in default interface is English, but every user-facing lock-screen string can be changed without editing the extension source.
 
-Copy the supplied example file:
+Copy the supplied example file into your Quarto project:
 
 ```bash
 cp .env.example .env
 ```
 
-`quarto-lock` automatically reads `.env` from the Quarto project root. Existing environment variables—including GitHub Actions `env` values and Secrets—take precedence over `.env`.
+`quarto-lock` automatically reads `.env` from the project root. Existing environment variables—including GitHub Actions `env` values and Secrets—take precedence over `.env`.
 
 Example:
 
@@ -118,23 +153,21 @@ QUARTO_LOCK_ERROR_INCORRECT="Senha incorreta."
 QUARTO_LOCK_ERROR_SECURE_CONTEXT="Este site precisa ser aberto por HTTPS (ou localhost)."
 ```
 
-See `customize.qmd` for a complete localization guide and another language example.
+See `customize.qmd` for a complete localization guide.
 
 ### Why `.env.example` is committed but `.env` is ignored
 
-The UI strings themselves are not secrets. However, `.env` files commonly end up containing credentials later. To avoid normalizing accidental secret commits, the repository tracks `.env.example` as documentation and ignores the working `.env` file.
+The UI strings themselves are not secrets. However, `.env` files commonly accumulate credentials later. The repository tracks `.env.example` as documentation and ignores the working `.env` file.
 
-For a real site, keep the shared password outside `.env` when possible:
+For a real site, keep the password in your shell or a GitHub Actions Secret:
 
 ```bash
 export QUARTO_LOCK_PASSWORD='your-private-passphrase'
 ```
 
-or use a GitHub Actions Secret.
-
 Configuration precedence is:
 
-1. existing environment variables / GitHub Actions Secrets;
+1. existing environment variables / GitHub Actions values;
 2. `.env`;
 3. built-in English defaults.
 
@@ -157,33 +190,40 @@ Configuration precedence is:
 
 ## GitHub deployment
 
-GitHub Pages is available from public repositories on GitHub Free. Publishing Pages directly from a private repository requires a GitHub plan that supports Pages from private repositories.
+There are two useful patterns.
 
-For that reason, `quarto-lock` supports two useful patterns:
+### Same repository → GitHub Pages
 
-1. **Same repository → `gh-pages`** — simplest for a public source repository or a plan that supports Pages from private repositories.
-2. **Private source repository → GitHub Actions → separate public Pages repository** — recommended when the Quarto source must remain private on GitHub Free. The public repository receives only the already-encrypted `_site` output.
+Use this when the source may be public or your GitHub plan supports Pages from private repositories.
 
-The rendered `index.qmd` documentation in this repository contains complete `.github/workflows/publish.yml` examples for both patterns.
-
-For a real project, store the password under:
-
-`Settings → Secrets and variables → Actions → New repository secret`
-
-with the name:
+Store the password as a repository Actions Secret named:
 
 ```text
 QUARTO_LOCK_PASSWORD
 ```
 
-and use:
+Then render before uploading the Pages artifact. The extension's post-render step encrypts `_site` before publication.
 
-```yaml
-env:
-  QUARTO_LOCK_PASSWORD: ${{ secrets.QUARTO_LOCK_PASSWORD }}
+### Private source → separate public Pages output
+
+This is the most useful pattern when the Quarto source must remain private on GitHub Free.
+
+```text
+PRIVATE source repository
+        |
+        | GitHub Actions
+        | QUARTO_LOCK_PASSWORD
+        v
+quarto render + quarto-lock
+        |
+        v
+PUBLIC Pages repository
+only lock shell + ciphertext
 ```
 
-The demo repository is intentionally different because `quarto-lock-demo` is a public test password.
+The public destination repository does not need the `.qmd` source, datasets, notebooks, scripts, or password.
+
+The full `index.qmd` documentation contains complete workflow examples for both patterns.
 
 ## Session behavior
 
