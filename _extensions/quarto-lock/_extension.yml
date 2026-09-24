@@ -1,0 +1,11 @@
+title: Quarto Lock
+author: Lucas Jordão
+version: 0.1.0
+quarto-required: ">=1.9.0"
+contributes:
+  filters:
+    - quarto-lock.lua
+  metadata:
+    project:
+      post-render:
+        - node _extensions/quarto-lock/lock.mjs

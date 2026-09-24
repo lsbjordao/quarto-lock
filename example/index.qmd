@@ -1,0 +1,9 @@
+---
+title: "Secret demo"
+---
+
+# Protected Quarto content
+
+If you can read this in the deployed site, the page was decrypted successfully.
+
+The navigation, Quarto CSS/JS, images, search indexes, and local downloads can all be protected by the same shared password.
