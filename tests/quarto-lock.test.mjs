@@ -47,7 +47,7 @@ async function build() {
 test("locks HTML and local assets without publishing plaintext", async () => {
   const { site } = await build();
   const wrapper = await readFile(path.join(site, "index.html"), "utf8");
-  assert.match(wrapper, /Área reservada/);
+  assert.match(wrapper, /Reserved area/);
   assert.doesNotMatch(wrapper, /TOP SECRET QUARTO TEXT/);
   assert.doesNotMatch(wrapper, /Very Secret Title/);
   await assert.rejects(access(path.join(site, "assets", "site.css")));
